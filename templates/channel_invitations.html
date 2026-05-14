@@ -1,0 +1,23 @@
+<h2>Channel Invitations</h2>
+
+{% if invitations %}
+  <ul>
+    {% for inv in invitations %}
+      <li>
+        Workspace: {{ inv[2] }} |
+        Channel: {{ inv[1] }} |
+        Invited by: {{ inv[3] }} |
+        Time: {{ inv[4] }}
+
+        <form method="post" action="{{ url_for('channel.respond_channel_invitation', invite_id=inv[0]) }}">
+          <button name="action" value="accept">Accept</button>
+          <button name="action" value="reject">Reject</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No pending channel invitations.</p>
+{% endif %}
+
+<a href="{{ url_for('workspace.dashboard') }}">Back</a>

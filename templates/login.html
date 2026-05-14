@@ -1,0 +1,11 @@
+<h2>Login</h2>
+
+<form method="post">
+  <input name="email" placeholder="Email" required><br>
+  <input name="password" type="password" placeholder="Password" required><br>
+  <button type="submit">Login</button>
+</form>
+
+<a href="{{ url_for('auth.register') }}">
+    Create an account
+</a>

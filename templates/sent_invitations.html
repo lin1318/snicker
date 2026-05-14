@@ -1,0 +1,31 @@
+<h2>Sent Invitations History</h2>
+
+{% if invitations %}
+  <table border="1">
+    <tr>
+      <th>Invitee Email</th>
+      <th>Invitee Username</th>
+      <th>Status</th>
+      <th>Created At</th>
+      <th>Responded At</th>
+    </tr>
+
+    {% for inv in invitations %}
+      <tr>
+        <td>{{ inv[1] }}</td>
+        <td>{{ inv[2] }}</td>
+        <td>{{ inv[3] }}</td>
+        <td>{{ inv[4] }}</td>
+        <td>{{ inv[5] }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p>No sent invitations yet.</p>
+{% endif %}
+
+<br>
+
+<a href="{{ url_for('workspace.workspace_detail', wid=wid) }}">
+  Back
+</a>

@@ -1,0 +1,22 @@
+<h2>Workspace Invitations</h2>
+
+{% if invitations %}
+  <ul>
+    {% for inv in invitations %}
+      <li>
+        Workspace: {{ inv[1] }} |
+        Invited by: {{ inv[2] }} |
+        Time: {{ inv[3] }}
+
+        <form method="post" action="{{ url_for('workspace.respond_invitation', invite_id=inv[0]) }}">
+          <button name="action" value="accept">Accept</button>
+          <button name="action" value="reject">Reject</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No pending invitations.</p>
+{% endif %}
+
+<a href="{{ url_for('workspace.dashboard') }}">Back</a>

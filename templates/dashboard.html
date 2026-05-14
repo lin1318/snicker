@@ -1,0 +1,43 @@
+<h1>Hello, {{ username }}</h1>
+
+<a href="{{ url_for('workspace.create_workspace') }}">
+    Create Workspace
+</a>
+
+<br>
+
+<a href="{{ url_for('workspace.workspace_invitations') }}">
+    View Workspace Invitations
+</a>
+
+<br>
+
+<a href="{{ url_for('channel.channel_invitations') }}">
+  View Channel Invitations
+</a>
+
+<br>
+
+<a href="{{ url_for('auth.logout') }}">
+    Logout
+</a>
+
+<hr>
+
+<h2>Your Workspaces</h2>
+
+{% if workspaces %}
+  <ul>
+    {% for w in workspaces %}
+      <li>
+        <a href="{{ url_for('workspace.workspace_detail', wid=w[0]) }}">
+          {{ w[1] }}
+        </a>
+        - {{ w[2] }}
+        - role: {{ w[3] }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>You don't join any workspace.</p>
+{% endif %}

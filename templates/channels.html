@@ -1,0 +1,30 @@
+<h2>Channels</h2>
+
+<form method="post" action="{{ url_for('channel.create_channel', wid=wid) }}">
+  <input name="cname" placeholder="Channel name" required>
+
+  <select name="ctype">
+    <option value="public">Public</option>
+    <option value="private">Private</option>
+    <option value="direct">Direct</option>
+  </select>
+
+  <button type="submit">Create Channel</button>
+</form>
+
+<hr>
+
+<ul>
+  {% for c in channels %}
+    <li>
+      <a href="{{ url_for('channel.channel_detail', cid=c[0]) }}">
+        {{ c[1] }}
+      </a>
+      - {{ c[2] }}
+    </li>
+  {% else %}
+    <li>No channels yet.</li>
+  {% endfor %}
+</ul>
+
+<a href="{{ url_for('workspace.workspace_detail', wid=wid) }}">Back to Workspace</a>

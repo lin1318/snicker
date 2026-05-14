@@ -1,0 +1,62 @@
+<h1>{{ channel[1] }}</h1>
+
+<p>Type: {{ channel[2] }}</p>
+<p>Workspace ID: {{ channel[3] }}</p>
+
+<hr>
+
+<h2>Channel Members</h2>
+
+{% if members %}
+  <ul>
+    {% for m in members %}
+      <li>
+        {{ m[1] }} / {{ m[2] }} / {{ m[3] }}
+        - joined at {{ m[4] }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No members.</p>
+{% endif %}
+
+<hr>
+
+<h2>Invite User to Channel</h2>
+
+<form method="post" action="{{ url_for('channel.invite_channel_user', cid=channel[0]) }}">
+  <input name="email" placeholder="User email" required>
+  <button type="submit">Invite</button>
+</form>
+
+<hr>
+
+<h2>Sent Channel Invitations</h2>
+
+{% if sent_invitations %}
+  <table border="1">
+    <tr>
+      <th>Email</th>
+      <th>Username</th>
+      <th>Status</th>
+      <th>Created At</th>
+      <th>Responded At</th>
+    </tr>
+
+    {% for inv in sent_invitations %}
+      <tr>
+        <td>{{ inv[1] }}</td>
+        <td>{{ inv[2] }}</td>
+        <td>{{ inv[3] }}</td>
+        <td>{{ inv[4] }}</td>
+        <td>{{ inv[5] }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <p>No sent channel invitations.</p>
+{% endif %}
+
+<br>
+
+<a href="{{ url_for('channel.channel_list', wid=channel[3]) }}">Back to Channels</a>
