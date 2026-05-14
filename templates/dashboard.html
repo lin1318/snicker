@@ -1,43 +1,53 @@
-<h1>Hello, {{ username }}</h1>
+{% extends "base.html" %}
 
-<a href="{{ url_for('workspace.create_workspace') }}">
-    Create Workspace
-</a>
+{% block content %}
 
-<br>
+<div class="page-header">
+  <div>
+    <h1>Hello, {{ username }}</h1>
+    <p class="muted">Choose a workspace or manage your invitations.</p>
+  </div>
 
-<a href="{{ url_for('workspace.workspace_invitations') }}">
-    View Workspace Invitations
-</a>
+  <a class="button" href="{{ url_for('workspace.create_workspace') }}">
+    + Create Workspace
+  </a>
+</div>
 
-<br>
+<div class="quick-actions">
+  <a href="{{ url_for('workspace.workspace_invitations') }}">
+    Workspace Invitations
+  </a>
 
-<a href="{{ url_for('channel.channel_invitations') }}">
-  View Channel Invitations
-</a>
-
-<br>
-
-<a href="{{ url_for('auth.logout') }}">
-    Logout
-</a>
-
-<hr>
+  <a href="{{ url_for('channel.channel_invitations') }}">
+    Channel Invitations
+  </a>
+</div>
 
 <h2>Your Workspaces</h2>
 
 {% if workspaces %}
-  <ul>
+  <div class="grid">
     {% for w in workspaces %}
-      <li>
-        <a href="{{ url_for('workspace.workspace_detail', wid=w[0]) }}">
-          {{ w[1] }}
-        </a>
-        - {{ w[2] }}
-        - role: {{ w[3] }}
-      </li>
+      <a class="workspace-card" href="{{ url_for('workspace.workspace_detail', wid=w[0]) }}">
+        <h3>{{ w[1] }}</h3>
+
+        <p>{{ w[2] or "No description" }}</p>
+
+        <span class="badge">
+          {{ w[3] }}
+        </span>
+      </a>
     {% endfor %}
-  </ul>
+  </div>
 {% else %}
-  <p>You don't join any workspace.</p>
+  <div class="empty-state">
+    <h3>No workspace yet</h3>
+    <p>You have not joined any workspace.</p>
+
+    <a class="button" href="{{ url_for('workspace.create_workspace') }}">
+      Create your first workspace
+    </a>
+  </div>
 {% endif %}
+
+{% endblock %}

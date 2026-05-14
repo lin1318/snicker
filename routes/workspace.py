@@ -93,6 +93,7 @@ def workspace_detail(wid):
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # check membership
     cur.execute(
         """
         SELECT role
@@ -101,7 +102,6 @@ def workspace_detail(wid):
         """,
         (wid, uid),
     )
-
     membership = cur.fetchone()
 
     if not membership:
@@ -111,6 +111,7 @@ def workspace_detail(wid):
 
     role = membership[0]
 
+    # workspace info
     cur.execute(
         """
         SELECT wid, wname, description
@@ -119,13 +120,43 @@ def workspace_detail(wid):
         """,
         (wid,),
     )
-
     workspace = cur.fetchone()
+
+    # all channels in this workspace
+    cur.execute(
+        """
+        SELECT cid, cname, ctype, created_at
+        FROM Channels
+        WHERE wid = %s
+        ORDER BY created_at DESC
+        """,
+        (wid,),
+    )
+    channels = cur.fetchall()
+
+    # all workspace members
+    cur.execute(
+        """
+        SELECT u.uid, u.username, u.nickname, u.email, wm.role, wm.joined_at
+        FROM WorkspaceMembership wm
+        JOIN Users u ON wm.uid = u.uid
+        WHERE wm.wid = %s
+        ORDER BY wm.role ASC, wm.joined_at ASC
+        """,
+        (wid,),
+    )
+    members = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template("workspace.html", workspace=workspace, role=role)
+    return render_template(
+        "workspace.html",
+        workspace=workspace,
+        role=role,
+        channels=channels,
+        members=members,
+    )
 
 
 @workspace_bp.route("/<int:wid>/invite", methods=["GET", "POST"])

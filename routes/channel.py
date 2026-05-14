@@ -4,6 +4,51 @@ from db import get_db_connection
 channel_bp = Blueprint("channel", __name__)
 
 
+@channel_bp.route("/channels/create/<int:wid>", methods=["GET"])
+def create_channel_page(wid):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    uid = session["user_id"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT 1
+        FROM WorkspaceMembership
+        WHERE wid = %s AND uid = %s
+        """,
+        (wid, uid),
+    )
+
+    member = cur.fetchone()
+
+    if not member:
+        cur.close()
+        conn.close()
+        return render_template(
+            "message.html", message="You are not a member of this workspace."
+        )
+
+    cur.execute(
+        """
+        SELECT wid, wname, description
+        FROM Workspaces
+        WHERE wid = %s
+        """,
+        (wid,),
+    )
+
+    workspace = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    return render_template("create_channel.html", workspace=workspace)
+
+
 @channel_bp.route("/channels/create/<int:wid>", methods=["POST"])
 def create_channel(wid):
     if "user_id" not in session:
@@ -158,55 +203,6 @@ def channel_detail(cid):
         is_workspace_admin=is_workspace_admin,
         sent_invitations=sent_invitations,
         messages=messages,
-    )
-
-
-@channel_bp.route("/workspaces/<int:wid>/channels")
-def channel_list(wid):
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
-
-    uid = session["user_id"]
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    # check membership
-    cur.execute(
-        """
-        SELECT 1
-        FROM WorkspaceMembership
-        WHERE wid = %s AND uid = %s
-        """,
-        (wid, uid),
-    )
-    member = cur.fetchone()
-
-    if not member:
-        cur.close()
-        conn.close()
-        return render_template(
-            "message.html", message="You are not a member of this workspace."
-        )
-
-    cur.execute(
-        """
-        SELECT cid, cname, ctype, created_at
-        FROM Channels
-        WHERE wid = %s
-        ORDER BY created_at DESC
-        """,
-        (wid,),
-    )
-    channels = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template(
-        "channels.html",
-        wid=wid,
-        channels=channels,
     )
 
 

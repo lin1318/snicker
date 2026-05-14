@@ -1,40 +1,136 @@
-<h1>{{ workspace[1] }}</h1>
-<p>{{ workspace[2] }}</p>
+{% extends "base.html" %}
 
-<p>Your role: {{ role }}</p>
+{% block content %}
 
-{% if role == "admin" %}
-  <a href="{{ url_for('workspace.invite_user', wid=workspace[0]) }}">
-    Invite User
-  </a>
-  <br>
-  <a href="{{ url_for('workspace.sent_invitations', wid=workspace[0]) }}">
-    Sent Invitations History
-  </a>
-{% endif %}
+<div class="page-header">
+  <div>
+    <h1>{{ workspace[1] }}</h1>
+    <p class="muted">{{ workspace[2] or "No description" }}</p>
+  </div>
 
-<h3>Create Channel</h3>
+  <span class="badge">{{ role }}</span>
+</div>
 
-<form method="post"
-      action="{{ url_for('channel.create_channel', wid=workspace[0]) }}">
+<section class="section-card">
+  <div class="section-header">
+    <h2>Channels</h2>
 
-  <input name="cname" placeholder="Channel name" required>
+    <button onclick="openModal('createChannelModal')">
+      + Create Channel
+    </button>
+  </div>
 
-  <select name="ctype">
-    <option value="public">Public</option>
-    <option value="private">Private</option>
-    <option value="direct">Direct</option>
-  </select>
+  {% if channels %}
+    <div class="grid">
+      {% for c in channels %}
+        <a class="workspace-card"
+           href="{{ url_for('channel.channel_detail', cid=c[0]) }}">
+          <h3># {{ c[1] }}</h3>
+          <p>Type: {{ c[2] }}</p>
+          <span class="badge">{{ c[2] }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <h3>No channels yet</h3>
+      <p>Create the first channel for this workspace.</p>
+    </div>
+  {% endif %}
+</section>
 
-  <button type="submit">
-    Create
-  </button>
+<section class="section-card">
+  <div class="section-header">
+    <h2>Workspace Members</h2>
 
-</form>
+    {% if role == "admin" %}
+      <div class="header-actions">
+        <button onclick="openModal('inviteUserModal')">
+          Invite User
+        </button>
 
-<a href="{{ url_for('channel.channel_list', wid=workspace[0]) }}">
-  View Channels
+        <a class="button secondary"
+           href="{{ url_for('workspace.sent_invitations', wid=workspace[0]) }}">
+          Invitation History
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if members %}
+    <table>
+      <tr>
+        <th>Username</th>
+        <th>Nickname</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Joined At</th>
+      </tr>
+
+      {% for m in members %}
+        <tr>
+          <td>{{ m[1] }}</td>
+          <td>{{ m[2] }}</td>
+          <td>{{ m[3] }}</td>
+          <td><span class="badge">{{ m[4] }}</span></td>
+          <td>{{ m[5] }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</section>
+
+<a href="{{ url_for('workspace.dashboard') }}">
+  ← Back to Dashboard
 </a>
 
-<br><br>
-<a href="{{ url_for('workspace.dashboard') }}">Back to Dashboard</a>
+<div id="createChannelModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Create Channel</h2>
+      <button class="icon-button" onclick="closeModal('createChannelModal')">×</button>
+    </div>
+
+    <form class="form"
+          method="post"
+          action="{{ url_for('channel.create_channel', wid=workspace[0]) }}">
+      <input name="cname" placeholder="Channel name" required>
+
+      <select name="ctype">
+        <option value="public">Public</option>
+        <option value="private">Private</option>
+        <option value="direct">Direct</option>
+      </select>
+
+      <button type="submit">Create</button>
+    </form>
+  </div>
+</div>
+
+<div id="inviteUserModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Invite User</h2>
+      <button class="icon-button" onclick="closeModal('inviteUserModal')">×</button>
+    </div>
+
+    <form class="form"
+          method="post"
+          action="{{ url_for('workspace.invite_user', wid=workspace[0]) }}">
+      <input name="email" placeholder="User email" required>
+      <button type="submit">Send Invitation</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) {
+    document.getElementById(id).classList.remove("hidden");
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.add("hidden");
+  }
+</script>
+
+{% endblock %}
