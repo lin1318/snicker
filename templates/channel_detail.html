@@ -22,6 +22,32 @@
 
 <hr>
 
+
+<h2>Messages</h2>
+
+{% if messages %}
+  <ul>
+    {% for msg in messages %}
+      <li>
+        <strong>{{ msg[3] }}</strong>
+        <small>{{ msg[2] }}</small>
+        <br>
+        {{ msg[1] }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No messages yet.</p>
+{% endif %}
+
+<form method="post" action="{{ url_for('channel.send_message', cid=channel[0]) }}">
+  <textarea name="content" placeholder="Write a message..." required></textarea>
+  <br>
+  <button type="submit">Send</button>
+</form>
+
+<hr>
+
 <h2>Invite User to Channel</h2>
 
 <form method="post" action="{{ url_for('channel.invite_channel_user', cid=channel[0]) }}">
