@@ -1,90 +1,133 @@
-<h1>{{ channel[1] }}</h1>
+{% extends "base.html" %}
 
-<p>Type: {{ channel[2] }}</p>
-<p>Workspace ID: {{ channel[3] }}</p>
+{% block content %}
 
-<hr>
+<div class="page-header">
+  <div>
+    <h1># {{ channel[1] }}</h1>
+    <p class="muted">Type: {{ channel[2] }}</p>
+  </div>
 
-<h2>Channel Members</h2>
+  <div class="header-actions">
+    <button onclick="openModal('inviteChannelUserModal')">
+      Invite User
+    </button>
 
-{% if members %}
-  <ul>
-    {% for m in members %}
-      <li>
-        {{ m[1] }} / {{ m[2] }} / {{ m[3] }}
-        - joined at {{ m[4] }}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No members.</p>
-{% endif %}
+    <a class="button secondary"
+       href="{{ url_for('channel.sent_channel_invitations', cid=channel[0]) }}">
+      Invitation History
+    </a>
+  </div>
+</div>
 
-<hr>
+<section class="section-card">
+  <h2>Messages</h2>
 
+  <div class="chat-box">
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="message-box">
+          <div class="message-meta">
+            <strong>{{ msg[3] }}</strong>
+            · {{ msg[2].strftime('%Y-%m-%d %H:%M:%S') }}
+          </div>
 
-<h2>Messages</h2>
+          <div class="message-content">
+            {{ msg[1] }}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <h3>No messages yet</h3>
+        <p>Start the conversation by sending the first message.</p>
+      </div>
+    {% endif %}
+  </div>
 
-{% if messages %}
-  <ul>
-    {% for msg in messages %}
-      <li>
-        <strong>{{ msg[3] }}</strong>
-        <small>{{ msg[2] }}</small>
-        <br>
-        {{ msg[1] }}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No messages yet.</p>
-{% endif %}
+  <form class="chat-input"
+        method="post"
+        action="{{ url_for('channel.send_message', cid=channel[0]) }}">
 
-<form method="post" action="{{ url_for('channel.send_message', cid=channel[0]) }}">
-  <textarea name="content" placeholder="Write a message..." required></textarea>
-  <br>
-  <button type="submit">Send</button>
-</form>
+    <textarea name="content"
+              placeholder="Write a message..."
+              required></textarea>
 
-<hr>
+    <br>
 
-<h2>Invite User to Channel</h2>
+    <button type="submit">
+      Send
+    </button>
+  </form>
+</section>
 
-<form method="post" action="{{ url_for('channel.invite_channel_user', cid=channel[0]) }}">
-  <input name="email" placeholder="User email" required>
-  <button type="submit">Invite</button>
-</form>
+<section class="section-card">
+  <div class="section-header">
+    <h2>Channel Members</h2>
+  </div>
 
-<hr>
-
-<h2>Sent Channel Invitations</h2>
-
-{% if sent_invitations %}
-  <table border="1">
-    <tr>
-      <th>Email</th>
-      <th>Username</th>
-      <th>Status</th>
-      <th>Created At</th>
-      <th>Responded At</th>
-    </tr>
-
-    {% for inv in sent_invitations %}
+  {% if members %}
+    <table>
       <tr>
-        <td>{{ inv[1] }}</td>
-        <td>{{ inv[2] }}</td>
-        <td>{{ inv[3] }}</td>
-        <td>{{ inv[4] }}</td>
-        <td>{{ inv[5] }}</td>
+        <th>Username</th>
+        <th>Nickname</th>
+        <th>Email</th>
+        <th>Joined At</th>
       </tr>
-    {% endfor %}
-  </table>
-{% else %}
-  <p>No sent channel invitations.</p>
-{% endif %}
 
-<br>
+      {% for m in members %}
+        <tr>
+          <td>{{ m[1] }}</td>
+          <td>{{ m[2] }}</td>
+          <td>{{ m[3] }}</td>
+          <td>{{ m[4].strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <h3>No members</h3>
+      <p>This channel does not have any members yet.</p>
+    </div>
+  {% endif %}
+</section>
 
 <a href="{{ url_for('workspace.workspace_detail', wid=channel[3]) }}">
   ← Back to Workspace
 </a>
+
+<div id="inviteChannelUserModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Invite User</h2>
+      <button class="icon-button" onclick="closeModal('inviteChannelUserModal')">
+        ×
+      </button>
+    </div>
+
+    <form class="form"
+          method="post"
+          action="{{ url_for('channel.invite_channel_user', cid=channel[0]) }}">
+
+      <input name="email"
+             placeholder="User email"
+             required>
+
+      <button type="submit">
+        Send Invitation
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openModal(id) {
+    document.getElementById(id).classList.remove("hidden");
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.add("hidden");
+  }
+</script>
+
+{% endblock %}

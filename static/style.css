@@ -409,3 +409,11 @@ td.status-cell {
 .table-actions button {
   padding: 8px 14px;
 }
+
+.chat-box {
+  margin-top: 18px;
+}
+
+.chat-input button {
+  margin-top: 12px;
+}

@@ -155,18 +155,6 @@ def channel_detail(cid):
     )
     members = cur.fetchall()
 
-    # check whether current user is workspace admin
-    cur.execute(
-        """
-        SELECT role
-        FROM WorkspaceMembership
-        WHERE wid = %s AND uid = %s
-        """,
-        (channel[3], uid),
-    )
-    membership = cur.fetchone()
-    is_workspace_admin = membership and membership[0] == "admin"
-
     # sent channel invitations
     cur.execute(
         """
@@ -200,7 +188,6 @@ def channel_detail(cid):
         "channel_detail.html",
         channel=channel,
         members=members,
-        is_workspace_admin=is_workspace_admin,
         sent_invitations=sent_invitations,
         messages=messages,
     )
@@ -493,3 +480,73 @@ def send_message(cid):
         conn.close()
 
     return redirect(url_for("channel.channel_detail", cid=cid))
+
+
+@channel_bp.route("/<int:cid>/invitations/sent")
+def sent_channel_invitations(cid):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    uid = session["user_id"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT cid, cname, wid
+        FROM Channels
+        WHERE cid = %s
+        """,
+        (cid,),
+    )
+    channel = cur.fetchone()
+
+    if not channel:
+        cur.close()
+        conn.close()
+        return "Channel not found."
+
+    cur.execute(
+        """
+        SELECT 1
+        FROM ChannelMembers
+        WHERE cid = %s AND uid = %s
+        """,
+        (cid, uid),
+    )
+    is_member = cur.fetchone()
+
+    if not is_member:
+        cur.close()
+        conn.close()
+        return "You are not a member of this channel."
+
+    cur.execute(
+        """
+        SELECT
+            ci.invite_id,
+            u.email,
+            u.username,
+            ci.status,
+            ci.created_at,
+            ci.responded_at
+        FROM ChannelInvitations ci
+        JOIN Users u ON ci.invitee_uid = u.uid
+        WHERE ci.cid = %s
+          AND ci.inviter_uid = %s
+        ORDER BY ci.created_at DESC
+        """,
+        (cid, uid),
+    )
+
+    invitations = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "sent_channel_invitations.html",
+        channel=channel,
+        invitations=invitations,
+    )
