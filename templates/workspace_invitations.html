@@ -4,7 +4,6 @@
 
 <div class="page-header">
   <div>
-
     <a class="back-link"
        href="{{ url_for('workspace.dashboard') }}">
       ← Back to Dashboard
@@ -13,9 +12,8 @@
     <h1>Workspace Invitations</h1>
 
     <p class="muted">
-      Pending invitations to join workspaces.
+      View all workspace invitations.
     </p>
-
   </div>
 </div>
 
@@ -24,72 +22,75 @@
   {% if invitations %}
 
     <table>
-
       <tr>
         <th>Workspace</th>
         <th>Invited By</th>
         <th class="status-cell">Status</th>
         <th>Created At</th>
+        <th>Responded At</th>
         <th>Action</th>
       </tr>
 
       {% for inv in invitations %}
-
         <tr>
-
           <td>{{ inv[1] }}</td>
 
           <td>{{ inv[2] }}</td>
 
           <td class="status-cell">
-            <span class="status-badge pending">
-              pending
+            <span class="status-badge {{ inv[3] }}">
+              {{ inv[3] }}
             </span>
           </td>
 
           <td>
-            {{ inv[3].strftime('%Y-%m-%d %H:%M:%S') }}
+            {{ inv[4].strftime('%Y-%m-%d %H:%M:%S') }}
           </td>
 
           <td>
-
-            <form class="table-actions"
-                  method="post"
-                  action="{{ url_for('workspace.respond_invitation', invite_id=inv[0]) }}">
-
-              <button type="submit"
-                      name="action"
-                      value="accept">
-                Accept
-              </button>
-
-              <button type="submit"
-                      name="action"
-                      value="reject"
-                      class="button secondary">
-                Reject
-              </button>
-
-            </form>
-
+            {% if inv[5] %}
+              {{ inv[5].strftime('%Y-%m-%d %H:%M:%S') }}
+            {% else %}
+              <span class="muted">Pending</span>
+            {% endif %}
           </td>
 
+          <td>
+            {% if inv[3] == "pending" %}
+              <form class="table-actions"
+                    method="post"
+                    action="{{ url_for('workspace.respond_invitation', invite_id=inv[0]) }}">
+
+                <button type="submit"
+                        name="action"
+                        value="accept">
+                  Accept
+                </button>
+
+                <button type="submit"
+                        name="action"
+                        value="reject"
+                        class="button secondary">
+                  Reject
+                </button>
+
+              </form>
+            {% else %}
+              <span class="muted">Handled</span>
+            {% endif %}
+          </td>
         </tr>
-
       {% endfor %}
-
     </table>
 
   {% else %}
 
     <div class="empty-state">
-
-      <h3>No pending invitations</h3>
+      <h3>No workspace invitations</h3>
 
       <p>
-        You do not have any workspace invitations right now.
+        You do not have any workspace invitations yet.
       </p>
-
     </div>
 
   {% endif %}

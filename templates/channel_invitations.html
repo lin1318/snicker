@@ -4,7 +4,6 @@
 
 <div class="page-header">
   <div>
-
     <a class="back-link"
        href="{{ url_for('workspace.dashboard') }}">
       ← Back to Dashboard
@@ -13,9 +12,8 @@
     <h1>Channel Invitations</h1>
 
     <p class="muted">
-      Pending invitations to join channels.
+      View all channel invitations.
     </p>
-
   </div>
 </div>
 
@@ -30,6 +28,7 @@
         <th>Invited By</th>
         <th class="status-cell">Status</th>
         <th>Created At</th>
+        <th>Responded At</th>
         <th>Action</th>
       </tr>
 
@@ -37,41 +36,51 @@
         <tr>
           <td>{{ inv[2] }}</td>
 
-          <td>
-            # {{ inv[1] }}
-          </td>
+          <td># {{ inv[1] }}</td>
 
           <td>{{ inv[3] }}</td>
 
           <td class="status-cell">
-            <span class="status-badge pending">
-              pending
+            <span class="status-badge {{ inv[4] }}">
+              {{ inv[4] }}
             </span>
           </td>
 
           <td>
-            {{ inv[4].strftime('%Y-%m-%d %H:%M:%S') }}
+            {{ inv[5].strftime('%Y-%m-%d %H:%M:%S') }}
           </td>
 
           <td>
-            <form class="table-actions"
-                  method="post"
-                  action="{{ url_for('channel.respond_channel_invitation', invite_id=inv[0]) }}">
+            {% if inv[6] %}
+              {{ inv[6].strftime('%Y-%m-%d %H:%M:%S') }}
+            {% else %}
+              <span class="muted">Pending</span>
+            {% endif %}
+          </td>
 
-              <button type="submit"
-                      name="action"
-                      value="accept">
-                Accept
-              </button>
+          <td>
+            {% if inv[4] == "pending" %}
+              <form class="table-actions"
+                    method="post"
+                    action="{{ url_for('channel.respond_channel_invitation', invite_id=inv[0]) }}">
 
-              <button type="submit"
-                      name="action"
-                      value="reject"
-                      class="button secondary">
-                Reject
-              </button>
+                <button type="submit"
+                        name="action"
+                        value="accept">
+                  Accept
+                </button>
 
-            </form>
+                <button type="submit"
+                        name="action"
+                        value="reject"
+                        class="button secondary">
+                  Reject
+                </button>
+
+              </form>
+            {% else %}
+              <span class="muted">Handled</span>
+            {% endif %}
           </td>
         </tr>
       {% endfor %}
@@ -80,10 +89,10 @@
   {% else %}
 
     <div class="empty-state">
-      <h3>No pending channel invitations</h3>
+      <h3>No channel invitations</h3>
 
       <p>
-        You do not have any channel invitations right now.
+        You do not have any channel invitations yet.
       </p>
     </div>
 

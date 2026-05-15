@@ -318,17 +318,19 @@ def channel_invitations():
             c.cname,
             w.wname,
             u.username,
-            ci.created_at
+            ci.status,
+            ci.created_at,
+            ci.responded_at
         FROM ChannelInvitations ci
         JOIN Channels c ON ci.cid = c.cid
         JOIN Workspaces w ON c.wid = w.wid
         JOIN Users u ON ci.inviter_uid = u.uid
         WHERE ci.invitee_uid = %s
-          AND ci.status = 'pending'
         ORDER BY ci.created_at DESC
         """,
         (uid,),
     )
+
     invitations = cur.fetchall()
 
     cur.close()

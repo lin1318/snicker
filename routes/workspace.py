@@ -266,12 +266,17 @@ def workspace_invitations():
 
     cur.execute(
         """
-        SELECT wi.invite_id, w.wname, u.username, wi.created_at
+        SELECT
+            wi.invite_id,
+            w.wname,
+            u.username,
+            wi.status,
+            wi.created_at,
+            wi.responded_at
         FROM WorkspaceInvitations wi
         JOIN Workspaces w ON wi.wid = w.wid
         JOIN Users u ON wi.inviter_uid = u.uid
         WHERE wi.invitee_uid = %s
-          AND wi.status = 'pending'
         ORDER BY wi.created_at DESC
         """,
         (uid,),
@@ -282,7 +287,10 @@ def workspace_invitations():
     cur.close()
     conn.close()
 
-    return render_template("workspace_invitations.html", invitations=invitations)
+    return render_template(
+        "workspace_invitations.html",
+        invitations=invitations,
+    )
 
 
 @workspace_bp.route("/invitations/<int:invite_id>/respond", methods=["POST"])
@@ -434,4 +442,6 @@ def sent_workspace_invitations(wid):
     cur.close()
     conn.close()
 
-    return render_template("sent_workspace_invitations.html", wid=wid, invitations=invitations)
+    return render_template(
+        "sent_workspace_invitations.html", wid=wid, invitations=invitations
+    )
