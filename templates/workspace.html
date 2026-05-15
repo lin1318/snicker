@@ -2,13 +2,24 @@
 
 {% block content %}
 
-<div class="page-header">
-  <div>
+<div class="workspace-header">
+  <div class="workspace-header-left">
+    <a class="back-link" href="{{ url_for('workspace.dashboard') }}">
+      ← Back to Dashboard
+    </a>
+
     <h1>{{ workspace[1] }}</h1>
-    <p class="muted">{{ workspace[2] or "No description" }}</p>
+
+    <p class="muted">
+      {{ workspace[2] or "No description" }}
+    </p>
   </div>
 
-  <span class="badge">{{ role }}</span>
+  <div class="workspace-header-right">
+    <span class="badge">
+      {{ role }}
+    </span>
+  </div>
 </div>
 
 <section class="section-card">
@@ -25,9 +36,16 @@
       {% for c in channels %}
         <a class="workspace-card"
            href="{{ url_for('channel.channel_detail', cid=c[0]) }}">
+
           <h3># {{ c[1] }}</h3>
-          <p>Type: {{ c[2] }}</p>
-          <span class="badge">{{ c[2] }}</span>
+
+          <p>
+            Type: {{ c[2] }}
+          </p>
+
+          <span class="badge">
+            {{ c[2] }}
+          </span>
         </a>
       {% endfor %}
     </div>
@@ -45,14 +63,16 @@
 
     {% if role == "admin" %}
       <div class="header-actions">
+
         <button onclick="openModal('inviteUserModal')">
           Invite User
         </button>
 
         <a class="button secondary"
-           href="{{ url_for('workspace.sent_invitations', wid=workspace[0]) }}">
+           href="{{ url_for('workspace.sent_workspace_invitations', wid=workspace[0]) }}">
           Invitation History
         </a>
+
       </div>
     {% endif %}
   </div>
@@ -70,31 +90,52 @@
       {% for m in members %}
         <tr>
           <td>{{ m[1] }}</td>
-          <td>{{ m[2] }}</td>
+
+          <td>
+            {{ m[2] or "-" }}
+          </td>
+
           <td>{{ m[3] }}</td>
-          <td><span class="badge">{{ m[4] }}</span></td>
-          <td>{{ m[5] }}</td>
+
+          <td>
+            <span class="badge">
+              {{ m[4] }}
+            </span>
+          </td>
+
+          <td>
+            {{ m[5].strftime('%Y-%m-%d %H:%M:%S') }}
+          </td>
         </tr>
       {% endfor %}
     </table>
+  {% else %}
+    <div class="empty-state">
+      <h3>No members</h3>
+      <p>This workspace has no members yet.</p>
+    </div>
   {% endif %}
 </section>
 
-<a href="{{ url_for('workspace.dashboard') }}">
-  ← Back to Dashboard
-</a>
-
 <div id="createChannelModal" class="modal hidden">
   <div class="modal-card">
+
     <div class="modal-header">
       <h2>Create Channel</h2>
-      <button class="icon-button" onclick="closeModal('createChannelModal')">×</button>
+
+      <button class="icon-button"
+              onclick="closeModal('createChannelModal')">
+        ×
+      </button>
     </div>
 
     <form class="form"
           method="post"
           action="{{ url_for('channel.create_channel', wid=workspace[0]) }}">
-      <input name="cname" placeholder="Channel name" required>
+
+      <input name="cname"
+             placeholder="Channel name"
+             required>
 
       <select name="ctype">
         <option value="public">Public</option>
@@ -102,23 +143,36 @@
         <option value="direct">Direct</option>
       </select>
 
-      <button type="submit">Create</button>
+      <button type="submit">
+        Create
+      </button>
     </form>
   </div>
 </div>
 
 <div id="inviteUserModal" class="modal hidden">
   <div class="modal-card">
+
     <div class="modal-header">
       <h2>Invite User</h2>
-      <button class="icon-button" onclick="closeModal('inviteUserModal')">×</button>
+
+      <button class="icon-button"
+              onclick="closeModal('inviteUserModal')">
+        ×
+      </button>
     </div>
 
     <form class="form"
           method="post"
           action="{{ url_for('workspace.invite_user', wid=workspace[0]) }}">
-      <input name="email" placeholder="User email" required>
-      <button type="submit">Send Invitation</button>
+
+      <input name="email"
+             placeholder="User email"
+             required>
+
+      <button type="submit">
+        Send Invitation
+      </button>
     </form>
   </div>
 </div>

@@ -4,90 +4,91 @@
 
 <div class="page-header">
   <div>
+
+    <a class="back-link"
+       href="{{ url_for('workspace.dashboard') }}">
+      ← Back to Dashboard
+    </a>
+
     <h1>Channel Invitations</h1>
+
     <p class="muted">
       Pending invitations to join channels.
     </p>
+
   </div>
 </div>
 
-{% if invitations %}
+<section class="section-card">
 
-  <table>
+  {% if invitations %}
 
-    <tr>
-      <th>Workspace</th>
-      <th>Channel</th>
-      <th>Invited By</th>
-      <th class="status-cell">Status</th>
-      <th>Created At</th>
-      <th>Action</th>
-    </tr>
-
-    {% for inv in invitations %}
-
+    <table>
       <tr>
-
-        <td>{{ inv[2] }}</td>
-
-        <td>
-          # {{ inv[1] }}
-        </td>
-
-        <td>{{ inv[3] }}</td>
-
-        <td class="status-cell">
-
-          <span class="status-badge pending">
-            pending
-          </span>
-
-        </td>
-
-        <td>
-          {{ inv[4].strftime('%Y-%m-%d %H:%M:%S') }}
-        </td>
-        <td>
-
-          <form class="table-actions"
-                method="post"
-                action="{{ url_for('channel.respond_channel_invitation', invite_id=inv[0]) }}">
-            <button type="submit"
-                    name="action"
-                    value="accept">
-              Accept
-            </button>
-            <button type="submit"
-                    name="action"
-                    value="reject"
-                    class="button secondary">
-
-              Reject
-            </button>
-          </form>
-        </td>
+        <th>Workspace</th>
+        <th>Channel</th>
+        <th>Invited By</th>
+        <th class="status-cell">Status</th>
+        <th>Created At</th>
+        <th>Action</th>
       </tr>
-    {% endfor %}
-  </table>
 
-{% else %}
+      {% for inv in invitations %}
+        <tr>
+          <td>{{ inv[2] }}</td>
 
-  <div class="empty-state">
+          <td>
+            # {{ inv[1] }}
+          </td>
 
-    <h3>No pending channel invitations</h3>
+          <td>{{ inv[3] }}</td>
 
-    <p>
-      You do not have any channel invitations right now.
-    </p>
+          <td class="status-cell">
+            <span class="status-badge pending">
+              pending
+            </span>
+          </td>
 
-  </div>
+          <td>
+            {{ inv[4].strftime('%Y-%m-%d %H:%M:%S') }}
+          </td>
 
-{% endif %}
+          <td>
+            <form class="table-actions"
+                  method="post"
+                  action="{{ url_for('channel.respond_channel_invitation', invite_id=inv[0]) }}">
 
-<br>
+              <button type="submit"
+                      name="action"
+                      value="accept">
+                Accept
+              </button>
 
-<a href="{{ url_for('workspace.dashboard') }}">
-  ← Back to Dashboard
-</a>
+              <button type="submit"
+                      name="action"
+                      value="reject"
+                      class="button secondary">
+                Reject
+              </button>
+
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+
+  {% else %}
+
+    <div class="empty-state">
+      <h3>No pending channel invitations</h3>
+
+      <p>
+        You do not have any channel invitations right now.
+      </p>
+    </div>
+
+  {% endif %}
+
+</section>
 
 {% endblock %}

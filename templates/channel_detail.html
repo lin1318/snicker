@@ -2,13 +2,25 @@
 
 {% block content %}
 
-<div class="page-header">
-  <div>
+<div class="channel-header">
+
+  <div class="channel-header-left">
+
+    <a class="back-link"
+       href="{{ url_for('workspace.workspace_detail', wid=channel[3]) }}">
+      ← Back to Workspace
+    </a>
+
     <h1># {{ channel[1] }}</h1>
-    <p class="muted">Type: {{ channel[2] }}</p>
+
+    <p class="muted">
+      Type: {{ channel[2] }}
+    </p>
+
   </div>
 
   <div class="header-actions">
+
     <button onclick="openModal('inviteChannelUserModal')">
       Invite User
     </button>
@@ -17,16 +29,21 @@
        href="{{ url_for('channel.sent_channel_invitations', cid=channel[0]) }}">
       Invitation History
     </a>
+
   </div>
+
 </div>
 
 <section class="section-card">
   <h2>Messages</h2>
 
   <div class="chat-box" id="messages">
+
     {% if messages %}
+
       {% for msg in messages %}
         <div class="message-box">
+
           <div class="message-meta">
             <strong>{{ msg[3] }}</strong>
             · {{ msg[2].strftime('%Y-%m-%d %H:%M:%S') }}
@@ -35,17 +52,23 @@
           <div class="message-content">
             {{ msg[1] }}
           </div>
+
         </div>
       {% endfor %}
+
     {% else %}
+
       <div class="empty-state" id="empty-message-state">
         <h3>No messages yet</h3>
         <p>Start the conversation by sending the first message.</p>
       </div>
+
     {% endif %}
+
   </div>
 
   <form class="chat-input" id="message-form">
+
     <textarea id="message-input"
               name="content"
               placeholder="Write a message..."
@@ -56,16 +79,20 @@
     <button type="submit">
       Send
     </button>
+
   </form>
 </section>
 
 <section class="section-card">
+
   <div class="section-header">
     <h2>Channel Members</h2>
   </div>
 
   {% if members %}
+
     <table>
+
       <tr>
         <th>Username</th>
         <th>Nickname</th>
@@ -75,32 +102,48 @@
 
       {% for m in members %}
         <tr>
+
           <td>{{ m[1] }}</td>
-          <td>{{ m[2] }}</td>
+
+          <td>
+            {{ m[2] or "-" }}
+          </td>
+
           <td>{{ m[3] }}</td>
-          <td>{{ m[4].strftime('%Y-%m-%d %H:%M:%S') }}</td>
+
+          <td>
+            {{ m[4].strftime('%Y-%m-%d %H:%M:%S') }}
+          </td>
+
         </tr>
       {% endfor %}
+
     </table>
+
   {% else %}
+
     <div class="empty-state">
       <h3>No members</h3>
       <p>This channel does not have any members yet.</p>
     </div>
+
   {% endif %}
+
 </section>
 
-<a href="{{ url_for('workspace.workspace_detail', wid=channel[3]) }}">
-  ← Back to Workspace
-</a>
-
 <div id="inviteChannelUserModal" class="modal hidden">
+
   <div class="modal-card">
+
     <div class="modal-header">
+
       <h2>Invite User</h2>
-      <button class="icon-button" onclick="closeModal('inviteChannelUserModal')">
+
+      <button class="icon-button"
+              onclick="closeModal('inviteChannelUserModal')">
         ×
       </button>
+
     </div>
 
     <form class="form"
@@ -114,8 +157,11 @@
       <button type="submit">
         Send Invitation
       </button>
+
     </form>
+
   </div>
+
 </div>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -159,6 +205,7 @@
   });
 
   socket.on("new_message", function (msg) {
+
     const emptyState = document.getElementById("empty-message-state");
 
     if (emptyState) {
@@ -166,6 +213,7 @@
     }
 
     const messageBox = document.createElement("div");
+
     messageBox.className = "message-box";
 
     const displayName = msg.nickname || msg.username;
@@ -182,6 +230,7 @@
     `;
 
     messages.appendChild(messageBox);
+
     messages.scrollTop = messages.scrollHeight;
   });
 </script>

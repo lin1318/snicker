@@ -385,7 +385,7 @@ def respond_invitation(invite_id):
 
 
 @workspace_bp.route("/<int:wid>/invitations/sent")
-def sent_invitations(wid):
+def sent_workspace_invitations(wid):
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
 
@@ -434,4 +434,4 @@ def sent_invitations(wid):
     cur.close()
     conn.close()
 
-    return render_template("sent_invitations.html", wid=wid, invitations=invitations)
+    return render_template("sent_workspace_invitations.html", wid=wid, invitations=invitations)

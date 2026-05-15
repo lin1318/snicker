@@ -477,3 +477,69 @@ td.status-cell {
   opacity: 0.7;
   transform: none;
 }
+
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.workspace-header-left h1 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.workspace-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding-top: 36px;
+}
+
+.back-link {
+  display: inline-block;
+
+  margin-bottom: 8px;
+
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.channel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.channel-header-left h1 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.back-link {
+  display: inline-block;
+
+  margin-bottom: 8px;
+
+  color: #2563eb;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
