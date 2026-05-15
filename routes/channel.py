@@ -471,56 +471,6 @@ def respond_channel_invitation(invite_id):
     return redirect(url_for("channel.channel_invitations"))
 
 
-@channel_bp.route("/channels/<int:cid>/messages", methods=["POST"])
-def send_message(cid):
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
-
-    uid = session["user_id"]
-    content = request.form["content"].strip()
-
-    if not content:
-        return redirect(url_for("channel.channel_detail", cid=cid))
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    try:
-        # check current user is channel member
-        cur.execute(
-            """
-            SELECT 1
-            FROM ChannelMembers
-            WHERE cid = %s AND uid = %s
-            """,
-            (cid, uid),
-        )
-        member = cur.fetchone()
-
-        if not member:
-            return "You are not a member of this channel."
-
-        cur.execute(
-            """
-            INSERT INTO Messages (cid, sender_id, content)
-            VALUES (%s, %s, %s)
-            """,
-            (cid, uid, content),
-        )
-
-        conn.commit()
-
-    except Exception as e:
-        conn.rollback()
-        return f"Send message failed: {e}"
-
-    finally:
-        cur.close()
-        conn.close()
-
-    return redirect(url_for("channel.channel_detail", cid=cid))
-
-
 @channel_bp.route("/<int:cid>/invitations/sent")
 def sent_channel_invitations(cid):
     if "user_id" not in session:
