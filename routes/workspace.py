@@ -64,7 +64,7 @@ def create_workspace():
             INSERT INTO WorkspaceMembership (wid, uid, role)
             VALUES (%s, %s, %s)
             """,
-            (wid, uid, "admin"),
+            (wid, uid, "creator"),
         )
 
         conn.commit()
@@ -224,11 +224,11 @@ def invite_user(wid):
     )
     membership = cur.fetchone()
 
-    if not membership or membership[0] != "admin":
+    if not membership or membership[0] not in ["creator", "admin"]:
         cur.close()
         conn.close()
 
-        flash("Only workspace admins can invite users.", "error")
+        flash("Only workspace creator or admins can invite users.", "error")
         return redirect(url_for("workspace.workspace_detail", wid=wid))
 
     cur.execute(
@@ -413,10 +413,10 @@ def sent_workspace_invitations(wid):
     )
     membership = cur.fetchone()
 
-    if not membership or membership[0] != "admin":
+    if not membership or membership[0] not in ["creator", "admin"]:
         cur.close()
         conn.close()
-        flash("Only workspace admins can view invitation history.", "error")
+        flash("Only workspace creator and admins can view invitation history.", "error")
         return redirect(url_for("workspace.workspace_detail", wid=wid))
 
     cur.execute(
@@ -445,3 +445,109 @@ def sent_workspace_invitations(wid):
     return render_template(
         "sent_workspace_invitations.html", wid=wid, invitations=invitations
     )
+
+
+@workspace_bp.route("/<int:wid>/members/<int:target_uid>/promote", methods=["POST"])
+def promote_admin(wid, target_uid):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    current_uid = session["user_id"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            """
+            SELECT role
+            FROM WorkspaceMembership
+            WHERE wid = %s AND uid = %s
+            """,
+            (wid, current_uid),
+        )
+        current = cur.fetchone()
+
+        if not current or current[0] != "creator":
+            flash("Only the workspace creator can add admins.", "error")
+            return redirect(url_for("workspace.workspace_detail", wid=wid))
+
+        cur.execute(
+            """
+            UPDATE WorkspaceMembership
+            SET role = 'admin'
+            WHERE wid = %s
+              AND uid = %s
+              AND role = 'member'
+            """,
+            (wid, target_uid),
+        )
+
+        if cur.rowcount == 0:
+            flash("Only regular members can be promoted.", "error")
+        else:
+            conn.commit()
+            flash("User promoted to admin.", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Promote failed: {e}", "error")
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("workspace.workspace_detail", wid=wid))
+
+
+@workspace_bp.route("/<int:wid>/members/<int:target_uid>/demote", methods=["POST"])
+def demote_admin(wid, target_uid):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    current_uid = session["user_id"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            """
+            SELECT role
+            FROM WorkspaceMembership
+            WHERE wid = %s AND uid = %s
+            """,
+            (wid, current_uid),
+        )
+        current = cur.fetchone()
+
+        if not current or current[0] != "creator":
+            flash("Only the workspace creator can remove admins.", "error")
+            return redirect(url_for("workspace.workspace_detail", wid=wid))
+
+        cur.execute(
+            """
+            UPDATE WorkspaceMembership
+            SET role = 'member'
+            WHERE wid = %s
+              AND uid = %s
+              AND role = 'admin'
+            """,
+            (wid, target_uid),
+        )
+
+        if cur.rowcount == 0:
+            flash("Only admins can be demoted.", "error")
+        else:
+            conn.commit()
+            flash("Admin role removed.", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Demote failed: {e}", "error")
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("workspace.workspace_detail", wid=wid))

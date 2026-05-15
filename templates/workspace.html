@@ -61,7 +61,7 @@
   <div class="section-header">
     <h2>Workspace Members</h2>
 
-    {% if role == "admin" %}
+    {% if role in ["creator", "admin"] %}
       <div class="header-actions">
 
         <button onclick="openModal('inviteUserModal')">
@@ -83,22 +83,21 @@
         <th>Username</th>
         <th>Nickname</th>
         <th>Email</th>
-        <th>Role</th>
+        <th class="role-column">Role</th>
         <th>Joined At</th>
+        {% if role == "creator" %}
+          <th>Actions</th>
+        {% endif %}
       </tr>
 
       {% for m in members %}
         <tr>
           <td>{{ m[1] }}</td>
-
-          <td>
-            {{ m[2] or "-" }}
-          </td>
-
+          <td>{{ m[2] or "-" }}</td>
           <td>{{ m[3] }}</td>
 
-          <td>
-            <span class="badge">
+          <td class="role-column">
+            <span class="status-badge {{ m[4] }}">
               {{ m[4] }}
             </span>
           </td>
@@ -106,14 +105,40 @@
           <td>
             {{ m[5].strftime('%Y-%m-%d %H:%M:%S') }}
           </td>
-        </tr>
-      {% endfor %}
-    </table>
+
+          {% if role == "creator" %}
+            <td>
+              {% if m[4] == "member" %}
+                <form class="table-actions"
+                  method="post"
+                  action="{{ url_for('workspace.promote_admin', wid=workspace[0], target_uid=m[0]) }}">
+                  <button type="submit">
+                    Make Admin
+                  </button>
+                </form>
+
+            {% elif m[4] == "admin" %}
+              <form class="table-actions"
+                    method="post"
+                    action="{{ url_for('workspace.demote_admin', wid=workspace[0], target_uid=m[0]) }}">
+                <button type="submit" class="button secondary">
+                  Remove Admin
+                </button>
+              </form>
+
+            {% else %}
+              <span class="muted">Owner</span>
+            {% endif %}
+          </td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+  </table>
   {% else %}
-    <div class="empty-state">
-      <h3>No members</h3>
-      <p>This workspace has no members yet.</p>
-    </div>
+      <div class="empty-state">
+        <h3>No members</h3>
+        <p>This workspace has no members yet.</p>
+      </div>
   {% endif %}
 </section>
 

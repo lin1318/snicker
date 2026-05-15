@@ -566,3 +566,24 @@ td.status-cell {
   justify-content: center;
   margin: 0;
 }
+
+.status-badge.creator {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge.admin {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-badge.member {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.role-column {
+  text-align: center;
+  vertical-align: middle;
+  width: 160px;
+}
