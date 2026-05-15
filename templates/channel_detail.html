@@ -19,7 +19,7 @@
 
   </div>
   
-  {% if channel[2] != "public" %}
+  {% if can_invite %}
   <div class="header-actions">
 
     <button onclick="openModal('inviteChannelUserModal')">
@@ -100,6 +100,7 @@
         <th>Nickname</th>
         <th>Email</th>
         <th>Joined At</th>
+        <th class="role-column">Role</th>
       </tr>
 
       {% for m in members %}
@@ -117,6 +118,12 @@
             {{ m[4].strftime('%Y-%m-%d %H:%M:%S') }}
           </td>
 
+          <td class="role-column">
+            <span class="status-badge {{ m[5] }}">
+              {{ m[5] }}
+            </span>
+          </td>
+          
         </tr>
       {% endfor %}
 
@@ -133,7 +140,7 @@
 
 </section>
 
-{% if channel[2] != "public" %}
+{% if can_invite %}
 <div id="inviteChannelUserModal" class="modal hidden">
 
   <div class="modal-card">

@@ -164,6 +164,45 @@ def workspace_detail(wid):
     )
 
 
+@workspace_bp.route("/invitations")
+def workspace_invitations():
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    uid = session["user_id"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT
+            wi.invite_id,
+            w.wname,
+            u.username,
+            wi.status,
+            wi.created_at,
+            wi.responded_at
+        FROM WorkspaceInvitations wi
+        JOIN Workspaces w ON wi.wid = w.wid
+        JOIN Users u ON wi.inviter_uid = u.uid
+        WHERE wi.invitee_uid = %s
+        ORDER BY wi.created_at DESC
+        """,
+        (uid,),
+    )
+
+    invitations = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "workspace_invitations.html",
+        invitations=invitations,
+    )
+
+
 @workspace_bp.route("/<int:wid>/invite", methods=["POST"])
 def invite_user(wid):
     if "user_id" not in session:
@@ -252,45 +291,6 @@ def invite_user(wid):
         conn.close()
 
     return redirect(url_for("workspace.workspace_detail", wid=wid))
-
-
-@workspace_bp.route("/invitations")
-def workspace_invitations():
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
-
-    uid = session["user_id"]
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT
-            wi.invite_id,
-            w.wname,
-            u.username,
-            wi.status,
-            wi.created_at,
-            wi.responded_at
-        FROM WorkspaceInvitations wi
-        JOIN Workspaces w ON wi.wid = w.wid
-        JOIN Users u ON wi.inviter_uid = u.uid
-        WHERE wi.invitee_uid = %s
-        ORDER BY wi.created_at DESC
-        """,
-        (uid,),
-    )
-
-    invitations = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template(
-        "workspace_invitations.html",
-        invitations=invitations,
-    )
 
 
 @workspace_bp.route("/invitations/<int:invite_id>/respond", methods=["POST"])

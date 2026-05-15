@@ -78,103 +78,117 @@ def channel_detail(cid):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        """
-        SELECT c.cid, c.cname, c.ctype, c.wid
-        FROM Channels c
-        JOIN WorkspaceMembership wm
-            ON c.wid = wm.wid
-           AND wm.uid = %s
-        WHERE c.cid = %s
-        """,
-        (uid, cid),
-    )
-    channel = cur.fetchone()
+    try:
+        # check user is in the workspace of this channel
+        cur.execute(
+            """
+            SELECT c.cid, c.cname, c.ctype, c.wid, c.creator_id
+            FROM Channels c
+            JOIN WorkspaceMembership wm
+                ON c.wid = wm.wid
+               AND wm.uid = %s
+            WHERE c.cid = %s
+            """,
+            (uid, cid),
+        )
 
-    if not channel:
+        channel = cur.fetchone()
+
+        if not channel:
+            flash("Channel not found or you do not have access.", "error")
+            return redirect(url_for("workspace.dashboard"))
+
+        cid, cname, ctype, wid, creator_id = channel
+
+        # public channel: any workspace member can access and auto-join
+        if ctype == "public":
+            cur.execute(
+                """
+                INSERT INTO ChannelMembers (cid, uid)
+                VALUES (%s, %s)
+                ON CONFLICT DO NOTHING
+                """,
+                (cid, uid),
+            )
+            conn.commit()
+
+        # private/direct channel: must already be channel member
+        else:
+            cur.execute(
+                """
+                SELECT 1
+                FROM ChannelMembers
+                WHERE cid = %s AND uid = %s
+                """,
+                (cid, uid),
+            )
+
+            member = cur.fetchone()
+
+            if not member:
+                flash("You are not a member of this channel.", "error")
+                return redirect(url_for("workspace.workspace_detail", wid=wid))
+
+        # current user can invite only in:
+        # direct channel, or private channel if current user is creator
+        can_invite = ctype == "direct" or (ctype == "private" and uid == creator_id)
+
+        # channel members with role
+        cur.execute(
+            """
+            SELECT
+                u.uid,
+                u.username,
+                u.nickname,
+                u.email,
+                cm.joined_at,
+                CASE
+                    WHEN c.creator_id = u.uid THEN 'creator'
+                    ELSE 'member'
+                END AS role
+            FROM ChannelMembers cm
+            JOIN Users u
+                ON cm.uid = u.uid
+            JOIN Channels c
+                ON cm.cid = c.cid
+            WHERE cm.cid = %s
+            ORDER BY
+                CASE
+                    WHEN c.creator_id = u.uid THEN 0
+                    ELSE 1
+                END,
+                cm.joined_at ASC
+            """,
+            (cid,),
+        )
+
+        members = cur.fetchall()
+
+        # messages
+        cur.execute(
+            """
+            SELECT m.mid, m.content, m.created_at, u.username, u.nickname
+            FROM Messages m
+            JOIN Users u
+                ON m.sender_id = u.uid
+            WHERE m.cid = %s
+            ORDER BY m.created_at ASC
+            """,
+            (cid,),
+        )
+
+        messages = cur.fetchall()
+
+    finally:
         cur.close()
         conn.close()
-
-        flash("Channel not found or you do not have access.", "error")
-        return redirect(url_for("workspace.dashboard"))
-
-    cid, cname, ctype, wid = channel
-
-    if ctype == "public":
-        cur.execute(
-            """
-            INSERT INTO ChannelMembers (cid, uid)
-            VALUES (%s, %s)
-            ON CONFLICT DO NOTHING
-            """,
-            (cid, uid),
-        )
-        conn.commit()
-
-    else:
-        cur.execute(
-            """
-            SELECT 1
-            FROM ChannelMembers
-            WHERE cid = %s AND uid = %s
-            """,
-            (cid, uid),
-        )
-        member = cur.fetchone()
-
-        if not member:
-            cur.close()
-            conn.close()
-
-            flash("You are not a member of this channel.", "error")
-            return redirect(url_for("workspace.workspace_detail", wid=wid))
-
-    cur.execute(
-        """
-        SELECT u.uid, u.username, u.nickname, u.email, cm.joined_at
-        FROM ChannelMembers cm
-        JOIN Users u ON cm.uid = u.uid
-        WHERE cm.cid = %s
-        ORDER BY cm.joined_at ASC
-        """,
-        (cid,),
-    )
-    members = cur.fetchall()
-
-    cur.execute(
-        """
-        SELECT ci.invite_id, u.email, u.username, ci.status, ci.created_at, ci.responded_at
-        FROM ChannelInvitations ci
-        JOIN Users u ON ci.invitee_uid = u.uid
-        WHERE ci.cid = %s
-          AND ci.inviter_uid = %s
-        ORDER BY ci.created_at DESC
-        """,
-        (cid, uid),
-    )
-    sent_invitations = cur.fetchall()
-
-    cur.execute(
-        """
-        SELECT m.mid, m.content, m.created_at, u.username, u.nickname
-        FROM Messages m
-        JOIN Users u ON m.sender_id = u.uid
-        WHERE m.cid = %s
-        ORDER BY m.created_at ASC
-        """,
-        (cid,),
-    )
-    messages = cur.fetchall()
-
-    cur.close()
-    conn.close()
 
     return render_template(
         "channel_detail.html",
         channel=channel,
         members=members,
-        sent_invitations=sent_invitations,
         messages=messages,
+        can_invite=can_invite,
     )
 
 
@@ -191,7 +205,7 @@ def invite_channel_user(cid):
 
     cur.execute(
         """
-        SELECT cid, wid, ctype
+        SELECT cid, wid, ctype, creator_id
         FROM Channels
         WHERE cid = %s
         """,
@@ -207,11 +221,21 @@ def invite_channel_user(cid):
 
     wid = channel[1]
     ctype = channel[2]
+    creator_id = channel[3]
 
     if ctype == "public":
         cur.close()
         conn.close()
         flash("Public channels do not need invitations.", "info")
+        return redirect(url_for("channel.channel_detail", cid=cid))
+
+    if ctype == "private" and inviter_uid != creator_id:
+        cur.close()
+        conn.close()
+        flash(
+            "Only the channel creator can invite users to this private channel.",
+            "error",
+        )
         return redirect(url_for("channel.channel_detail", cid=cid))
 
     cur.execute(
@@ -308,13 +332,7 @@ def invite_channel_user(cid):
             cur.execute(
                 """
                 INSERT INTO ChannelInvitations
-                    (
-                        cid,
-                        inviter_uid,
-                        invitee_uid,
-                        status,
-                        responded_at
-                    )
+                    (cid, inviter_uid, invitee_uid, status, responded_at)
                 VALUES (%s, %s, %s, 'accepted', CURRENT_TIMESTAMP)
                 """,
                 (cid, inviter_uid, invitee_uid),
