@@ -43,6 +43,9 @@ def register():
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
+    if "user_id" in session:
+        return redirect(url_for("workspace.dashboard"))
+
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]

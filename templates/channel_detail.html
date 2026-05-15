@@ -23,7 +23,7 @@
 <section class="section-card">
   <h2>Messages</h2>
 
-  <div class="chat-box">
+  <div class="chat-box" id="messages">
     {% if messages %}
       {% for msg in messages %}
         <div class="message-box">
@@ -38,18 +38,16 @@
         </div>
       {% endfor %}
     {% else %}
-      <div class="empty-state">
+      <div class="empty-state" id="empty-message-state">
         <h3>No messages yet</h3>
         <p>Start the conversation by sending the first message.</p>
       </div>
     {% endif %}
   </div>
 
-  <form class="chat-input"
-        method="post"
-        action="{{ url_for('channel.send_message', cid=channel[0]) }}">
-
-    <textarea name="content"
+  <form class="chat-input" id="message-form">
+    <textarea id="message-input"
+              name="content"
               placeholder="Write a message..."
               required></textarea>
 
@@ -120,6 +118,8 @@
   </div>
 </div>
 
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
 <script>
   function openModal(id) {
     document.getElementById(id).classList.remove("hidden");
@@ -128,6 +128,62 @@
   function closeModal(id) {
     document.getElementById(id).classList.add("hidden");
   }
+
+  const socket = io();
+
+  const cid = "{{ channel[0] }}";
+
+  socket.emit("join_channel", {
+    cid: cid
+  });
+
+  const form = document.getElementById("message-form");
+  const input = document.getElementById("message-input");
+  const messages = document.getElementById("messages");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const content = input.value.trim();
+
+    if (!content) {
+      return;
+    }
+
+    socket.emit("send_message", {
+      cid: cid,
+      content: content
+    });
+
+    input.value = "";
+  });
+
+  socket.on("new_message", function (msg) {
+    const emptyState = document.getElementById("empty-message-state");
+
+    if (emptyState) {
+      emptyState.remove();
+    }
+
+    const messageBox = document.createElement("div");
+    messageBox.className = "message-box";
+
+    const displayName = msg.nickname || msg.username;
+
+    messageBox.innerHTML = `
+      <div class="message-meta">
+        <strong>${displayName}</strong>
+        · ${msg.created_at}
+      </div>
+
+      <div class="message-content">
+        ${msg.content}
+      </div>
+    `;
+
+    messages.appendChild(messageBox);
+    messages.scrollTop = messages.scrollHeight;
+  });
 </script>
 
 {% endblock %}
