@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for
+from flask import Blueprint, render_template, request, redirect, session, url_for, flash
 from db import get_db_connection
 
 workspace_bp = Blueprint("workspace", __name__, url_prefix="/workspaces")
@@ -35,52 +35,49 @@ def dashboard():
     )
 
 
-@workspace_bp.route("/create", methods=["GET", "POST"])
+@workspace_bp.route("/create", methods=["POST"])
 def create_workspace():
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
 
-    if request.method == "POST":
-        wname = request.form["wname"]
-        description = request.form["description"]
-        uid = session["user_id"]
+    wname = request.form["wname"]
+    description = request.form["description"]
+    uid = session["user_id"]
 
-        conn = get_db_connection()
-        cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-        try:
-            cur.execute(
-                """
-                INSERT INTO Workspaces (wname, description, creator_id)
-                VALUES (%s, %s, %s)
-                RETURNING wid
-                """,
-                (wname, description, uid),
-            )
+    try:
+        cur.execute(
+            """
+            INSERT INTO Workspaces (wname, description, creator_id)
+            VALUES (%s, %s, %s)
+            RETURNING wid
+            """,
+            (wname, description, uid),
+        )
 
-            wid = cur.fetchone()[0]
+        wid = cur.fetchone()[0]
 
-            cur.execute(
-                """
-                INSERT INTO WorkspaceMembership (wid, uid, role)
-                VALUES (%s, %s, %s)
-                """,
-                (wid, uid, "admin"),
-            )
+        cur.execute(
+            """
+            INSERT INTO WorkspaceMembership (wid, uid, role)
+            VALUES (%s, %s, %s)
+            """,
+            (wid, uid, "admin"),
+        )
 
-            conn.commit()
+        conn.commit()
 
-        except Exception as e:
-            conn.rollback()
-            return f"Create workspace failed: {e}"
+    except Exception as e:
+        conn.rollback()
+        return f"Create workspace failed: {e}"
 
-        finally:
-            cur.close()
-            conn.close()
+    finally:
+        cur.close()
+        conn.close()
 
-        return redirect(url_for("workspace.dashboard"))
-
-    return render_template("create_workspace.html")
+    return redirect(url_for("workspace.dashboard"))
 
 
 @workspace_bp.route("/<int:wid>")
@@ -159,17 +156,17 @@ def workspace_detail(wid):
     )
 
 
-@workspace_bp.route("/<int:wid>/invite", methods=["GET", "POST"])
+@workspace_bp.route("/<int:wid>/invite", methods=["POST"])
 def invite_user(wid):
     if "user_id" not in session:
         return redirect(url_for("auth.login"))
 
     uid = session["user_id"]
+    invitee_email = request.form["email"]
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # check current user is admin
     cur.execute(
         """
         SELECT role
@@ -183,77 +180,70 @@ def invite_user(wid):
     if not membership or membership[0] != "admin":
         cur.close()
         conn.close()
-        return render_template(
-            "message.html", message="Only workspace admins can invite users."
-        )
 
-    if request.method == "POST":
-        invitee_email = request.form["email"]
-
-        # find invited user
-        cur.execute(
-            """
-            SELECT uid
-            FROM Users
-            WHERE email = %s
-            """,
-            (invitee_email,),
-        )
-        invitee = cur.fetchone()
-
-        if not invitee:
-            cur.close()
-            conn.close()
-            return render_template(
-                "message.html", message="User with this email does not exist."
-            )
-
-        invitee_uid = invitee[0]
-
-        # check already member
-        cur.execute(
-            """
-            SELECT 1
-            FROM WorkspaceMembership
-            WHERE wid = %s AND uid = %s
-            """,
-            (wid, invitee_uid),
-        )
-        already_member = cur.fetchone()
-
-        if already_member:
-            cur.close()
-            conn.close()
-            return render_template(
-                "message.html", message="This user is already a member."
-            )
-
-        # create invitation
-        try:
-            cur.execute(
-                """
-                INSERT INTO WorkspaceInvitations
-                    (wid, inviter_uid, invitee_uid, status)
-                VALUES (%s, %s, %s, 'pending')
-                """,
-                (wid, uid, invitee_uid),
-            )
-            conn.commit()
-
-        except Exception as e:
-            conn.rollback()
-            return f"Invite failed: {e}"
-
-        finally:
-            cur.close()
-            conn.close()
-
+        flash("Only workspace admins can invite users.", "error")
         return redirect(url_for("workspace.workspace_detail", wid=wid))
 
-    cur.close()
-    conn.close()
+    cur.execute(
+        """
+        SELECT uid
+        FROM Users
+        WHERE email = %s
+        """,
+        (invitee_email,),
+    )
+    invitee = cur.fetchone()
 
-    return render_template("invite_user.html", wid=wid)
+    if not invitee:
+        cur.close()
+        conn.close()
+
+        flash("User with this email does not exist.", "error")
+        return redirect(url_for("workspace.workspace_detail", wid=wid))
+
+    invitee_uid = invitee[0]
+
+    cur.execute(
+        """
+        SELECT 1
+        FROM WorkspaceMembership
+        WHERE wid = %s AND uid = %s
+        """,
+        (wid, invitee_uid),
+    )
+    already_member = cur.fetchone()
+
+    if already_member:
+        cur.close()
+        conn.close()
+
+        flash("This user is already a member.", "warning")
+        return redirect(url_for("workspace.workspace_detail", wid=wid))
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO WorkspaceInvitations
+                (wid, inviter_uid, invitee_uid, status)
+            VALUES (%s, %s, %s, 'pending')
+            """,
+            (wid, uid, invitee_uid),
+        )
+
+        conn.commit()
+
+        flash("Invitation sent successfully.", "success")
+
+    except Exception as e:
+        conn.rollback()
+
+        flash(f"Invite failed: {e}", "error")
+
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("workspace.workspace_detail", wid=wid))
 
 
 @workspace_bp.route("/invitations")
@@ -296,7 +286,8 @@ def respond_invitation(invite_id):
     action = request.form["action"]
 
     if action not in ["accept", "reject"]:
-        return "Invalid action."
+        flash("Invalid action.", "error")
+        return redirect(url_for("workspace.workspace_invitations"))
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -315,23 +306,25 @@ def respond_invitation(invite_id):
     if not invitation:
         cur.close()
         conn.close()
-        return render_template("message.html", message="Invitation not found.")
+
+        flash("Invitation not found.", "error")
+        return redirect(url_for("workspace.workspace_invitations"))
 
     wid, invitee_uid, status = invitation
 
     if invitee_uid != uid:
         cur.close()
         conn.close()
-        return render_template(
-            "message.html", message="This invitation does not belong to you."
-        )
+
+        flash("This invitation does not belong to you.", "error")
+        return redirect(url_for("workspace.workspace_invitations"))
 
     if status != "pending":
         cur.close()
         conn.close()
-        return render_template(
-            "message.html", message="This invitation has already been handled."
-        )
+
+        flash("This invitation has already been handled.", "warning")
+        return redirect(url_for("workspace.workspace_invitations"))
 
     try:
         if action == "accept":
@@ -366,9 +359,15 @@ def respond_invitation(invite_id):
 
         conn.commit()
 
+        if action == "accept":
+            flash("Invitation accepted successfully.", "success")
+        else:
+            flash("Invitation rejected.", "info")
+
     except Exception as e:
         conn.rollback()
-        return f"Respond invitation failed: {e}"
+
+        flash(f"Respond invitation failed: {e}", "error")
 
     finally:
         cur.close()
@@ -401,9 +400,8 @@ def sent_invitations(wid):
     if not membership or membership[0] != "admin":
         cur.close()
         conn.close()
-        return render_template(
-            "message.html", message="Only workspace admins can view invitation history."
-        )
+        flash("Only workspace admins can view invitation history.", "error")
+        return redirect(url_for("workspace.workspace_detail", wid=wid))
 
     cur.execute(
         """

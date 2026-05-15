@@ -1,52 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from db import get_db_connection
 
 channel_bp = Blueprint("channel", __name__)
-
-
-@channel_bp.route("/channels/create/<int:wid>", methods=["GET"])
-def create_channel_page(wid):
-    if "user_id" not in session:
-        return redirect(url_for("auth.login"))
-
-    uid = session["user_id"]
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT 1
-        FROM WorkspaceMembership
-        WHERE wid = %s AND uid = %s
-        """,
-        (wid, uid),
-    )
-
-    member = cur.fetchone()
-
-    if not member:
-        cur.close()
-        conn.close()
-        return render_template(
-            "message.html", message="You are not a member of this workspace."
-        )
-
-    cur.execute(
-        """
-        SELECT wid, wname, description
-        FROM Workspaces
-        WHERE wid = %s
-        """,
-        (wid,),
-    )
-
-    workspace = cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    return render_template("create_channel.html", workspace=workspace)
 
 
 @channel_bp.route("/channels/create/<int:wid>", methods=["POST"])
@@ -63,7 +18,6 @@ def create_channel(wid):
     cur = conn.cursor()
 
     try:
-        # check workspace membership
         cur.execute(
             """
             SELECT 1
@@ -76,11 +30,9 @@ def create_channel(wid):
         member = cur.fetchone()
 
         if not member:
-            return render_template(
-                "message.html", message="You are not a member of this workspace."
-            )
+            flash("You are not a member of this workspace.", "error")
+            return redirect(url_for("workspace.workspace_detail", wid=wid))
 
-        # create channel and get cid
         cur.execute(
             """
             INSERT INTO Channels (wid, cname, ctype, creator_id)
@@ -92,7 +44,6 @@ def create_channel(wid):
 
         cid = cur.fetchone()[0]
 
-        # add creator to ChannelMembers
         cur.execute(
             """
             INSERT INTO ChannelMembers (cid, uid)
@@ -103,9 +54,12 @@ def create_channel(wid):
 
         conn.commit()
 
+        flash("Channel created successfully.", "success")
+
     except Exception as e:
         conn.rollback()
-        return f"Create channel failed: {e}"
+
+        flash(f"Create channel failed: {e}", "error")
 
     finally:
         cur.close()
@@ -218,7 +172,8 @@ def invite_channel_user(cid):
     if not channel:
         cur.close()
         conn.close()
-        return "Channel not found."
+        flash("Channel not found.", "error")
+        return redirect(url_for("channel.channel_detail", cid=cid))
 
     wid = channel[1]
 
@@ -236,7 +191,8 @@ def invite_channel_user(cid):
     if not inviter_is_member:
         cur.close()
         conn.close()
-        return "You are not a member of this channel."
+        flash("You are not a member of this channel.", "error")
+        return redirect(url_for("channel.channel_detail", cid=cid))
 
     # find invitee
     cur.execute(
@@ -252,7 +208,8 @@ def invite_channel_user(cid):
     if not invitee:
         cur.close()
         conn.close()
-        return "User not found."
+        flash("User not found.", "error")
+        return redirect(url_for("channel.channel_detail", cid=cid))
 
     invitee_uid = invitee[0]
 
@@ -270,7 +227,8 @@ def invite_channel_user(cid):
     if not invitee_in_workspace:
         cur.close()
         conn.close()
-        return "This user is not a member of this workspace."
+        flash("This user is not a member of this workspace.", "error")
+        return redirect(url_for("channel.channel_detail", cid=cid))
 
     # check already channel member
     cur.execute(
@@ -286,7 +244,8 @@ def invite_channel_user(cid):
     if already_member:
         cur.close()
         conn.close()
-        return "This user is already in this channel."
+        flash("This user is already in this channel.", "error")
+        return redirect(url_for("channel.channel_detail", cid=cid))
 
     try:
         cur.execute(
@@ -307,6 +266,7 @@ def invite_channel_user(cid):
         cur.close()
         conn.close()
 
+    flash("Invitation sent successfully.", "success")
     return redirect(url_for("channel.channel_detail", cid=cid))
 
 
