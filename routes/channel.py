@@ -78,25 +78,57 @@ def channel_detail(cid):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # check user can access this channel
     cur.execute(
         """
         SELECT c.cid, c.cname, c.ctype, c.wid
         FROM Channels c
-        JOIN ChannelMembers cm ON c.cid = cm.cid
+        JOIN WorkspaceMembership wm
+            ON c.wid = wm.wid
+           AND wm.uid = %s
         WHERE c.cid = %s
-          AND cm.uid = %s
         """,
-        (cid, uid),
+        (uid, cid),
     )
     channel = cur.fetchone()
 
     if not channel:
         cur.close()
         conn.close()
-        return "Channel not found or you do not have access."
 
-    # channel members
+        flash("Channel not found or you do not have access.", "error")
+        return redirect(url_for("workspace.dashboard"))
+
+    cid, cname, ctype, wid = channel
+
+    if ctype == "public":
+        cur.execute(
+            """
+            INSERT INTO ChannelMembers (cid, uid)
+            VALUES (%s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (cid, uid),
+        )
+        conn.commit()
+
+    else:
+        cur.execute(
+            """
+            SELECT 1
+            FROM ChannelMembers
+            WHERE cid = %s AND uid = %s
+            """,
+            (cid, uid),
+        )
+        member = cur.fetchone()
+
+        if not member:
+            cur.close()
+            conn.close()
+
+            flash("You are not a member of this channel.", "error")
+            return redirect(url_for("workspace.workspace_detail", wid=wid))
+
     cur.execute(
         """
         SELECT u.uid, u.username, u.nickname, u.email, cm.joined_at
@@ -109,7 +141,6 @@ def channel_detail(cid):
     )
     members = cur.fetchall()
 
-    # sent channel invitations
     cur.execute(
         """
         SELECT ci.invite_id, u.email, u.username, ci.status, ci.created_at, ci.responded_at

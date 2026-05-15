@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, session, url_for
+from flask import Blueprint, render_template, request, redirect, session, url_for, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection
 
@@ -67,9 +67,11 @@ def login():
         if user and check_password_hash(user[4], password):
             session["user_id"] = user[0]
             session["username"] = user[2]
+
             return redirect(url_for("workspace.dashboard"))
 
-        return "Invalid email or password"
+        flash("Invalid email or password.", "error")
+        return redirect(url_for("auth.login"))
 
     return render_template("login.html")
 

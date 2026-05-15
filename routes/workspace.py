@@ -104,7 +104,8 @@ def workspace_detail(wid):
     if not membership:
         cur.close()
         conn.close()
-        return "You are not a member of this workspace."
+        flash("You are not a member of this workspace.", "error")
+        return redirect(url_for("workspace.dashboard"))
 
     role = membership[0]
 
@@ -119,15 +120,22 @@ def workspace_detail(wid):
     )
     workspace = cur.fetchone()
 
-    # all channels in this workspace
+    # all public channels and private&direct channels user have joined in this workspace
     cur.execute(
         """
-        SELECT cid, cname, ctype, created_at
-        FROM Channels
-        WHERE wid = %s
-        ORDER BY created_at DESC
+        SELECT DISTINCT c.cid, c.cname, c.ctype, c.created_at
+        FROM Channels c
+        LEFT JOIN ChannelMembers cm
+            ON c.cid = cm.cid
+        AND cm.uid = %s
+        WHERE c.wid = %s
+        AND (
+            c.ctype = 'public'
+            OR cm.uid IS NOT NULL
+        )
+        ORDER BY c.created_at DESC
         """,
-        (wid,),
+        (uid, wid),
     )
     channels = cur.fetchall()
 
