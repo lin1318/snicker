@@ -18,7 +18,8 @@
     </p>
 
   </div>
-
+  
+  {% if channel[2] != "public" %}
   <div class="header-actions">
 
     <button onclick="openModal('inviteChannelUserModal')">
@@ -31,6 +32,7 @@
     </a>
 
   </div>
+  {% endif %}
 
 </div>
 
@@ -131,6 +133,7 @@
 
 </section>
 
+{% if channel[2] != "public" %}
 <div id="inviteChannelUserModal" class="modal hidden">
 
   <div class="modal-card">
@@ -157,12 +160,11 @@
       <button type="submit">
         Send Invitation
       </button>
-
     </form>
-
   </div>
-
 </div>
+{% endif %}
+
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 

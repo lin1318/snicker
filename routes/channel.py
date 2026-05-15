@@ -189,7 +189,6 @@ def invite_channel_user(cid):
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # get channel and workspace
     cur.execute(
         """
         SELECT cid, wid, ctype
@@ -204,11 +203,17 @@ def invite_channel_user(cid):
         cur.close()
         conn.close()
         flash("Channel not found.", "error")
-        return redirect(url_for("channel.channel_detail", cid=cid))
+        return redirect(url_for("workspace.dashboard"))
 
     wid = channel[1]
+    ctype = channel[2]
 
-    # inviter must be a channel member
+    if ctype == "public":
+        cur.close()
+        conn.close()
+        flash("Public channels do not need invitations.", "info")
+        return redirect(url_for("channel.channel_detail", cid=cid))
+
     cur.execute(
         """
         SELECT 1
@@ -225,7 +230,6 @@ def invite_channel_user(cid):
         flash("You are not a member of this channel.", "error")
         return redirect(url_for("channel.channel_detail", cid=cid))
 
-    # find invitee
     cur.execute(
         """
         SELECT uid
@@ -244,7 +248,6 @@ def invite_channel_user(cid):
 
     invitee_uid = invitee[0]
 
-    # invitee must already be workspace member
     cur.execute(
         """
         SELECT 1
@@ -261,7 +264,6 @@ def invite_channel_user(cid):
         flash("This user is not a member of this workspace.", "error")
         return redirect(url_for("channel.channel_detail", cid=cid))
 
-    # check already channel member
     cur.execute(
         """
         SELECT 1
@@ -279,25 +281,69 @@ def invite_channel_user(cid):
         return redirect(url_for("channel.channel_detail", cid=cid))
 
     try:
-        cur.execute(
-            """
-            INSERT INTO ChannelInvitations
-                (cid, inviter_uid, invitee_uid, status)
-            VALUES (%s, %s, %s, 'pending')
-            """,
-            (cid, inviter_uid, invitee_uid),
-        )
-        conn.commit()
+        if ctype == "direct":
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM ChannelMembers
+                WHERE cid = %s
+                """,
+                (cid,),
+            )
+            member_count = cur.fetchone()[0]
+
+            if member_count >= 2:
+                flash("Direct channels can only have two members.", "error")
+                conn.rollback()
+                return redirect(url_for("channel.channel_detail", cid=cid))
+
+            cur.execute(
+                """
+                INSERT INTO ChannelMembers (cid, uid)
+                VALUES (%s, %s)
+                """,
+                (cid, invitee_uid),
+            )
+
+            cur.execute(
+                """
+                INSERT INTO ChannelInvitations
+                    (
+                        cid,
+                        inviter_uid,
+                        invitee_uid,
+                        status,
+                        responded_at
+                    )
+                VALUES (%s, %s, %s, 'accepted', CURRENT_TIMESTAMP)
+                """,
+                (cid, inviter_uid, invitee_uid),
+            )
+
+            conn.commit()
+            flash("User added to direct channel.", "success")
+
+        else:
+            cur.execute(
+                """
+                INSERT INTO ChannelInvitations
+                    (cid, inviter_uid, invitee_uid, status)
+                VALUES (%s, %s, %s, 'pending')
+                """,
+                (cid, inviter_uid, invitee_uid),
+            )
+
+            conn.commit()
+            flash("Invitation sent successfully.", "success")
 
     except Exception as e:
         conn.rollback()
-        return f"Invite failed: {e}"
+        flash(f"Invite failed: {e}", "error")
 
     finally:
         cur.close()
         conn.close()
 
-    flash("Invitation sent successfully.", "success")
     return redirect(url_for("channel.channel_detail", cid=cid))
 
 
