@@ -2,7 +2,7 @@
 
 Snickr is a lightweight Slack-style collaboration platform built with Flask and PostgreSQL.
 
-Users can create workspaces, manage channels, invite members, and communicate through channel-based messaging.
+Users can create workspaces, manage channels, invite members, communicate through channel-based messaging and search messages.
 
 ---
 
@@ -67,6 +67,7 @@ Supports three channel types:
 * Message history display
 * Timestamped messages
 * User information attached to messages
+* Search messages
 
 ---
 
@@ -98,6 +99,7 @@ Supports three channel types:
 
 * HTML
 * CSS
+* JavaScript
 * Jinja2 Templates
 
 ## Authentication
@@ -188,10 +190,3 @@ Open:
 ```txt
 http://127.0.0.1:5000
 ```
-
-
-
-
-
-
-

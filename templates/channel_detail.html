@@ -37,7 +37,13 @@
 </div>
 
 <section class="section-card">
+<div class="section-header">
   <h2>Messages</h2>
+  <a class="button secondary"
+     href="{{ url_for('channel.search_messages', cid=channel[0]) }}">
+    Search Messages
+  </a>
+</div>
 
   <div class="chat-box" id="messages">
 

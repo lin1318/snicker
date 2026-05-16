@@ -557,3 +557,77 @@ def sent_channel_invitations(cid):
         channel=channel,
         invitations=invitations,
     )
+
+
+@channel_bp.route("/channels/<int:cid>/search", methods=["GET", "POST"])
+def search_messages(cid):
+    if "user_id" not in session:
+        return redirect(url_for("auth.login"))
+
+    uid = session["user_id"]
+    keyword = request.form.get("keyword", "").strip()
+    results = []
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # check channel access
+    cur.execute(
+        """
+        SELECT c.cid, c.cname, c.ctype, c.wid
+        FROM Channels c
+        JOIN WorkspaceMembership wm
+            ON c.wid = wm.wid
+           AND wm.uid = %s
+        WHERE c.cid = %s
+        """,
+        (uid, cid),
+    )
+    channel = cur.fetchone()
+
+    if not channel:
+        cur.close()
+        conn.close()
+        flash("Channel not found or you do not have access.", "error")
+        return redirect(url_for("workspace.dashboard"))
+
+    # private/direct must be channel member
+    if channel[2] in ["private", "direct"]:
+        cur.execute(
+            """
+            SELECT 1
+            FROM ChannelMembers
+            WHERE cid = %s AND uid = %s
+            """,
+            (cid, uid),
+        )
+
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            flash("You are not a member of this channel.", "error")
+            return redirect(url_for("workspace.workspace_detail", wid=channel[3]))
+
+    if request.method == "POST" and keyword:
+        cur.execute(
+            """
+            SELECT m.mid, m.content, m.created_at, u.username, u.nickname
+            FROM Messages m
+            JOIN Users u ON m.sender_id = u.uid
+            WHERE m.cid = %s
+              AND m.content ILIKE %s
+            ORDER BY m.created_at DESC
+            """,
+            (cid, f"%{keyword}%"),
+        )
+        results = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "search_messages.html",
+        channel=channel,
+        keyword=keyword,
+        results=results,
+    )

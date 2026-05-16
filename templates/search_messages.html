@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>Search Messages</h1>
+    <p class="muted">Channel: # {{ channel[1] }}</p>
+  </div>
+</div>
+
+<div class="auth-card">
+  <form class="form" method="post">
+    <input name="keyword"
+           placeholder="Enter keyword..."
+           value="{{ keyword }}"
+           required>
+
+    <button type="submit">
+      Search
+    </button>
+  </form>
+</div>
+
+{% if keyword %}
+  <h2>Results for "{{ keyword }}"</h2>
+
+  {% if results %}
+    {% for msg in results %}
+      <div class="message-box">
+        <div class="message-meta">
+          <strong>{{ msg[4] or msg[3] }}</strong>
+          · {{ msg[2].strftime('%Y-%m-%d %H:%M:%S') }}
+        </div>
+
+        <div class="message-content">
+          {{ msg[1] }}
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <h3>No results found</h3>
+      <p>No messages contain this keyword.</p>
+    </div>
+  {% endif %}
+{% endif %}
+
+<br>
+
+<a href="{{ url_for('channel.channel_detail', cid=channel[0]) }}">
+  ← Back to Channel
+</a>
+
+{% endblock %}
